@@ -1,0 +1,710 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-mono, monospace); background: transparent; color: var(--color-text-primary); font-size: 13px; line-height: 1.6; }
+
+.header { padding: 1.5rem 1.5rem 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.header-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.badge { font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.08em; text-transform: uppercase; }
+.badge-main { background: #042C53; color: #85B7EB; }
+.badge-ver  { background: var(--color-background-secondary); color: var(--color-text-secondary); }
+.header h1  { font-size: 17px; font-weight: 500; font-family: var(--font-sans); color: var(--color-text-primary); }
+.header p   { font-size: 12px; color: var(--color-text-secondary); font-family: var(--font-sans); margin-top: 3px; }
+
+.tabs { display: flex; gap: 2px; padding: 0.75rem 1.5rem 0; border-bottom: 0.5px solid var(--color-border-tertiary); overflow-x: auto; }
+.tab { padding: 6px 14px; font-size: 12px; font-family: var(--font-sans); color: var(--color-text-secondary); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; }
+.tab:hover { color: var(--color-text-primary); }
+.tab.active { color: #185FA5; border-bottom-color: #185FA5; font-weight: 500; }
+
+.content { padding: 1.25rem 1.5rem; display: none; }
+.content.active { display: block; }
+
+/* Code blocks */
+.code-block { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; position: relative; }
+.code-block .label { font-size: 10px; font-weight: 500; letter-spacing: 0.08em; color: var(--color-text-tertiary); text-transform: uppercase; margin-bottom: 8px; font-family: var(--font-sans); }
+pre { white-space: pre-wrap; word-break: break-word; }
+
+/* Syntax tokens */
+.kw   { color: #185FA5; font-weight: 500; }     /* keyword: SERVICE, LAYER, PROCESS, etc. */
+.fn   { color: #0F6E56; }                         /* functions */
+.str  { color: #854F0B; }                         /* strings / literals */
+.cmt  { color: var(--color-text-tertiary); font-style: italic; } /* comments */
+.kpi  { color: #993C1D; font-weight: 500; }      /* KPI names */
+.num  { color: #3B6D11; }                         /* numbers */
+.area { color: #534AB7; font-weight: 500; }       /* org areas */
+.ret  { color: #A32D2D; }                         /* RETURN */
+.err  { color: #E24B4A; }                         /* ERROR */
+.arrow{ color: var(--color-text-secondary); }
+
+/* KPI grid */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+.kpi-card { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 8px; padding: 0.75rem 1rem; }
+.kpi-card .area-tag { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; font-family: var(--font-sans); }
+.kpi-card ul { list-style: none; }
+.kpi-card ul li { font-size: 12px; padding: 2px 0; color: var(--color-text-secondary); display: flex; align-items: baseline; gap: 6px; }
+.kpi-card ul li::before { content: "—"; color: var(--color-border-secondary); font-size: 10px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* Arch diagram */
+.arch { display: flex; flex-direction: column; gap: 4px; }
+.arch-layer { border: 0.5px solid; border-radius: 8px; padding: 0.6rem 1rem; display: flex; align-items: center; gap: 12px; }
+.arch-layer-title { font-size: 12px; font-weight: 500; font-family: var(--font-sans); min-width: 180px; }
+.arch-layer-desc  { font-size: 11px; color: var(--color-text-secondary); font-family: var(--font-sans); }
+.arch-arrow { text-align: center; font-size: 16px; color: var(--color-text-tertiary); padding: 1px 0; }
+
+/* Colors per layer */
+.l1 { background: #E6F1FB; border-color: #B5D4F4; } .l1 .arch-layer-title { color: #0C447C; }
+.l2 { background: #EEEDFE; border-color: #CECBF6; } .l2 .arch-layer-title { color: #3C3489; }
+.l3 { background: #E1F5EE; border-color: #9FE1CB; } .l3 .arch-layer-title { color: #085041; }
+.l4 { background: #FAEEDA; border-color: #FAC775; } .l4 .arch-layer-title { color: #633806; }
+.l5 { background: #FAECE7; border-color: #F5C4B3; } .l5 .arch-layer-title { color: #712B13; }
+
+@media (prefers-color-scheme: dark) {
+  .l1 { background: #042C53; border-color: #0C447C; } .l1 .arch-layer-title { color: #85B7EB; }
+  .l2 { background: #26215C; border-color: #3C3489; } .l2 .arch-layer-title { color: #AFA9EC; }
+  .l3 { background: #04342C; border-color: #085041; } .l3 .arch-layer-title { color: #5DCAA5; }
+  .l4 { background: #412402; border-color: #633806; } .l4 .arch-layer-title { color: #FAC775; }
+  .l5 { background: #4A1B0C; border-color: #712B13; } .l5 .arch-layer-title { color: #F0997B; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <span class="badge badge-main">3DM Service</span>
+    <span class="badge badge-ver">v1.0 — Pseudo-código</span>
+  </div>
+  <h1>Data Driven Decision Making — Business Analytics Engine</h1>
+  <p>Extração ERP → Normalização → KPIs → Decisão por Área Organizacional</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('overview')">Visão Geral</div>
+  <div class="tab" onclick="show('erp')">ERP Connector</div>
+  <div class="tab" onclick="show('areas')">Macro Processos</div>
+  <div class="tab" onclick="show('kpis')">KPIs</div>
+  <div class="tab" onclick="show('decision')">Decision Engine</div>
+  <div class="tab" onclick="show('arch')">Arquitetura</div>
+</div>
+
+<!-- ══════════ OVERVIEW ══════════ -->
+<div class="content active" id="tab-overview">
+<div class="code-block">
+<div class="label">3DM — Service Definition</div>
+<pre>
+<span class="kw">SERVICE</span> <span class="fn">3DM</span> {
+
+  <span class="cmt">// ─────────────────────────────────────────────</span>
+  <span class="cmt">// OBJETIVO: Transformar dados operacionais do ERP</span>
+  <span class="cmt">// em inteligência de decisão para todas as áreas</span>
+  <span class="cmt">// ─────────────────────────────────────────────</span>
+
+  <span class="kw">VERSION</span>   = <span class="str">"1.0.0"</span>
+  <span class="kw">PARADIGM</span>  = <span class="str">"Data-Driven Decision Making"</span>
+  <span class="kw">SOURCE</span>    = <span class="str">"ERP_EXISTENTE"</span>  <span class="cmt">// qualquer ERP via adapter</span>
+
+  <span class="kw">AREAS</span> = [
+    <span class="area">ADMINISTRATIVO</span>,
+    <span class="area">FINANCEIRO</span>,
+    <span class="area">COMERCIAL</span>,
+    <span class="area">OPERACIONAL</span>,
+    <span class="area">LOGISTICO</span>
+  ]
+
+  <span class="kw">LAYERS</span> = [
+    <span class="fn">ERP_CONNECTOR</span>   <span class="arrow">→</span> <span class="cmt">extração e autenticação</span>
+    <span class="fn">ETL_PIPELINE</span>    <span class="arrow">→</span> <span class="cmt">transformação e limpeza</span>
+    <span class="fn">KPI_ENGINE</span>      <span class="arrow">→</span> <span class="cmt">cálculo de indicadores</span>
+    <span class="fn">INSIGHT_LAYER</span>   <span class="arrow">→</span> <span class="cmt">análise e alertas</span>
+    <span class="fn">DECISION_API</span>    <span class="arrow">→</span> <span class="cmt">recomendações e output</span>
+  ]
+
+  <span class="kw">CYCLE</span> = {
+    <span class="fn">COLLECT</span>  <span class="arrow">→</span> <span class="fn">PROCESS</span>  <span class="arrow">→</span> <span class="fn">ANALYZE</span>  <span class="arrow">→</span> <span class="fn">DECIDE</span>  <span class="arrow">→</span> <span class="fn">MONITOR</span>
+  }
+
+  <span class="kw">TRIGGER</span> = {
+    <span class="fn">SCHEDULED</span>   : <span class="str">"cron(0 6 * * *)"</span>     <span class="cmt">// diário às 06h</span>
+    <span class="fn">REAL_TIME</span>   : <span class="str">"webhook_erp_event"</span>   <span class="cmt">// eventos críticos</span>
+    <span class="fn">ON_DEMAND</span>   : <span class="str">"api_request"</span>         <span class="cmt">// chamada manual</span>
+  }
+
+}
+</pre>
+</div>
+</div>
+
+<!-- ══════════ ERP CONNECTOR ══════════ -->
+<div class="content" id="tab-erp">
+<div class="code-block">
+<div class="label">Módulo: ERP_CONNECTOR</div>
+<pre>
+<span class="kw">MODULE</span> <span class="fn">ERP_CONNECTOR</span> {
+
+  <span class="cmt">// Suporta múltiplos ERPs via padrão Adapter</span>
+  <span class="kw">ADAPTERS</span> = {
+    <span class="str">"SAP"</span>         : <span class="fn">SapRFCAdapter</span>,
+    <span class="str">"TOTVS"</span>       : <span class="fn">TotvsRestAdapter</span>,
+    <span class="str">"ORACLE"</span>      : <span class="fn">OracleJDBCAdapter</span>,
+    <span class="str">"SENIOR"</span>      : <span class="fn">SeniorSoapAdapter</span>,
+    <span class="str">"CUSTOM"</span>      : <span class="fn">GenericSQLAdapter</span>   <span class="cmt">// fallback</span>
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">connect</span>(erp_config) {
+    <span class="kw">INPUT</span>  : erp_config { type, host, credentials, schema }
+    <span class="kw">OUTPUT</span> : connection_handle
+
+    adapter = <span class="fn">ADAPTERS</span>[erp_config.type]
+    <span class="kw">IF</span> adapter == <span class="kw">NULL</span> <span class="arrow">→</span> <span class="err">THROW</span> <span class="str">"AdapterNotFound"</span>
+
+    handle = adapter.<span class="fn">init</span>(erp_config.credentials)
+    handle.<span class="fn">test_connection</span>()
+    <span class="kw">RETURN</span> handle
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">extract</span>(handle, domain, date_range) {
+    <span class="kw">INPUT</span>  : handle, domain <span class="str">[ADMIN|FIN|COM|OPS|LOG]</span>, date_range
+    <span class="kw">OUTPUT</span> : raw_dataset[]
+
+    query   = <span class="fn">QUERY_MAP</span>[domain].<span class="fn">build</span>(date_range)
+    raw     = handle.<span class="fn">execute</span>(query)
+
+    <span class="kw">IF</span> raw.<span class="fn">isEmpty</span>() <span class="arrow">→</span> <span class="err">LOG_WARN</span> <span class="str">"EmptyDataset"</span>
+
+    <span class="kw">RETURN</span> <span class="fn">RAW_DATASET</span> {
+      domain     : domain,
+      rows       : raw,
+      extracted_at: <span class="fn">NOW</span>(),
+      erp_version : handle.version
+    }
+  }
+
+  <span class="cmt">// Mapa de queries por domínio</span>
+  <span class="kw">QUERY_MAP</span> = {
+    <span class="area">ADMIN</span>      : <span class="fn">queries.admin_core</span>(),
+    <span class="area">FINANCEIRO</span> : <span class="fn">queries.fin_accounts</span>(),
+    <span class="area">COMERCIAL</span>  : <span class="fn">queries.sales_pipeline</span>(),
+    <span class="area">OPERACIONAL</span>: <span class="fn">queries.ops_production</span>(),
+    <span class="area">LOGISTICO</span>  : <span class="fn">queries.log_transport</span>()
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Módulo: ETL_PIPELINE</div>
+<pre>
+<span class="kw">MODULE</span> <span class="fn">ETL_PIPELINE</span> {
+
+  <span class="kw">FUNCTION</span> <span class="fn">transform</span>(raw_dataset) {
+    <span class="kw">STEP 1</span> — <span class="fn">VALIDATE</span>
+      <span class="kw">FOR EACH</span> row <span class="kw">IN</span> raw_dataset.rows {
+        <span class="fn">CHECK</span> required_fields_present(row)
+        <span class="fn">CHECK</span> types_match_schema(row)
+        <span class="fn">CHECK</span> values_in_range(row)
+        <span class="kw">IF</span> invalid <span class="arrow">→</span> <span class="fn">QUARANTINE</span>(row)
+      }
+
+    <span class="kw">STEP 2</span> — <span class="fn">CLEAN</span>
+      <span class="fn">REMOVE</span>    duplicates
+      <span class="fn">FILL</span>      nulls <span class="kw">WITH</span> domain_defaults
+      <span class="fn">NORMALIZE</span> currency_to_BRL(exchange_rate = <span class="fn">FETCH_RATE</span>())
+      <span class="fn">NORMALIZE</span> dates_to_UTC()
+
+    <span class="kw">STEP 3</span> — <span class="fn">ENRICH</span>
+      <span class="fn">JOIN</span> cadastro_clientes  <span class="kw">WHERE</span> domain == <span class="area">COMERCIAL</span>
+      <span class="fn">JOIN</span> plano_contas       <span class="kw">WHERE</span> domain == <span class="area">FINANCEIRO</span>
+      <span class="fn">JOIN</span> ficha_produto      <span class="kw">WHERE</span> domain <span class="kw">IN</span> [<span class="area">OPERACIONAL</span>, <span class="area">LOGISTICO</span>]
+      <span class="fn">JOIN</span> organograma        <span class="kw">WHERE</span> domain == <span class="area">ADMIN</span>
+
+    <span class="kw">RETURN</span> clean_dataset
+  }
+}
+</pre>
+</div>
+</div>
+
+<!-- ══════════ MACRO PROCESSOS ══════════ -->
+<div class="content" id="tab-areas">
+<div class="code-block">
+<div class="label">Área: Administrativo</div>
+<pre>
+<span class="kw">PROCESS</span> <span class="area">ADMINISTRATIVO</span> {
+
+  <span class="kw">MACRO_PROCESSES</span> = [
+    <span class="str">"Gestão de Pessoas e RH"</span>,
+    <span class="str">"Gestão Documental e Compliance"</span>,
+    <span class="str">"Gestão de Contratos"</span>,
+    <span class="str">"Gestão de Patrimônio"</span>
+  ]
+
+  <span class="kw">FUNCTION</span> <span class="fn">analyze_admin</span>(clean_dataset) {
+    headcount      = <span class="fn">COUNT</span>(employees.active)
+    turnover_rate  = <span class="fn">CALC</span>( demissoes / headcount * <span class="num">100</span> )
+    absenteeism    = <span class="fn">CALC</span>( horas_falta / horas_esperadas * <span class="num">100</span> )
+    compliance_idx = <span class="fn">SCORE</span>( docs_conformes / total_docs * <span class="num">100</span> )
+    cost_per_head  = <span class="fn">CALC</span>( custo_total_rh / headcount )
+    training_hours = <span class="fn">SUM</span>( horas_treinamento_per_employee )
+
+    <span class="kw">ALERTS</span> = {
+      <span class="kw">IF</span> turnover_rate  > <span class="num">5.0</span>  <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Turnover crítico"</span>
+      <span class="kw">IF</span> absenteeism    > <span class="num">3.0</span>  <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Absenteísmo elevado"</span>
+      <span class="kw">IF</span> compliance_idx < <span class="num">90</span>   <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Compliance em risco"</span>
+    }
+
+    <span class="kw">RETURN</span> <span class="fn">AdminReport</span> { headcount, turnover_rate, absenteeism,
+                           compliance_idx, cost_per_head, training_hours }
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Área: Financeiro</div>
+<pre>
+<span class="kw">PROCESS</span> <span class="area">FINANCEIRO</span> {
+
+  <span class="kw">MACRO_PROCESSES</span> = [
+    <span class="str">"Contas a Pagar / Receber"</span>,
+    <span class="str">"Fluxo de Caixa"</span>,
+    <span class="str">"Orçamento vs Realizado"</span>,
+    <span class="str">"Gestão de Custos e Margem"</span>,
+    <span class="str">"DRE e Balanço"</span>
+  ]
+
+  <span class="kw">FUNCTION</span> <span class="fn">analyze_finance</span>(clean_dataset) {
+    receita_bruta    = <span class="fn">SUM</span>(faturamento.periodo)
+    deducoes         = <span class="fn">SUM</span>(impostos + devolucoes)
+    receita_liquida  = receita_bruta - deducoes
+    cogs             = <span class="fn">SUM</span>(custo_mercadorias_vendidas)
+    lucro_bruto      = receita_liquida - cogs
+    ebitda           = lucro_bruto - <span class="fn">SUM</span>(despesas_operacionais)
+    margem_bruta     = <span class="fn">CALC</span>( lucro_bruto / receita_liquida * <span class="num">100</span> )
+    margem_ebitda    = <span class="fn">CALC</span>( ebitda / receita_liquida * <span class="num">100</span> )
+    liquidez_corrente= <span class="fn">CALC</span>( ativo_circulante / passivo_circulante )
+    inadimplencia    = <span class="fn">CALC</span>( titulos_vencidos / total_carteira * <span class="num">100</span> )
+    dias_receber     = <span class="fn">CALC</span>( contas_receber / receita_bruta * <span class="num">30</span> )
+    budget_var       = <span class="fn">CALC</span>( (realizado - orcado) / orcado * <span class="num">100</span> )
+
+    <span class="kw">ALERTS</span> = {
+      <span class="kw">IF</span> margem_bruta     < <span class="num">20</span>   <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Margem comprimida"</span>
+      <span class="kw">IF</span> inadimplencia    > <span class="num">3</span>    <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Inadimplência crítica"</span>
+      <span class="kw">IF</span> liquidez_corrente < <span class="num">1.2</span> <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Liquidez comprometida"</span>
+      <span class="kw">IF</span> budget_var       > <span class="num">10</span>   <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Desvio orçamentário"</span>
+    }
+
+    <span class="kw">RETURN</span> <span class="fn">FinReport</span> { receita_liquida, margem_bruta, margem_ebitda,
+                        ebitda, inadimplencia, liquidez_corrente,
+                        dias_receber, budget_var }
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Área: Comercial</div>
+<pre>
+<span class="kw">PROCESS</span> <span class="area">COMERCIAL</span> {
+
+  <span class="kw">MACRO_PROCESSES</span> = [
+    <span class="str">"Funil de Vendas e CRM"</span>,
+    <span class="str">"Gestão de Carteira de Clientes"</span>,
+    <span class="str">"Precificação e Margens"</span>,
+    <span class="str">"Pós-venda e Satisfação"</span>,
+    <span class="str">"Forecast e Metas"</span>
+  ]
+
+  <span class="kw">FUNCTION</span> <span class="fn">analyze_commercial</span>(clean_dataset) {
+    ticket_medio      = <span class="fn">CALC</span>( receita_total / qtd_pedidos )
+    taxa_conversao    = <span class="fn">CALC</span>( vendas_fechadas / leads * <span class="num">100</span> )
+    churn_rate        = <span class="fn">CALC</span>( clientes_perdidos / total_clientes * <span class="num">100</span> )
+    ltv               = <span class="fn">CALC</span>( ticket_medio * freq_compra * vida_util )
+    cac               = <span class="fn">CALC</span>( custo_aquisicao / novos_clientes )
+    ltv_cac_ratio     = <span class="fn">CALC</span>( ltv / cac )
+    receita_recorrente= <span class="fn">SUM</span>( pedidos.recorrente )
+    share_wallet      = <span class="fn">CALC</span>( receita_cliente / potencial_cliente * <span class="num">100</span> )
+    atingimento_meta  = <span class="fn">CALC</span>( realizado / meta * <span class="num">100</span> )
+    dias_ciclo_venda  = <span class="fn">AVG</span>( data_fechamento - data_abertura )
+
+    <span class="kw">ALERTS</span> = {
+      <span class="kw">IF</span> churn_rate      > <span class="num">5</span>    <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Churn elevado"</span>
+      <span class="kw">IF</span> ltv_cac_ratio   < <span class="num">3</span>    <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"CAC desproporcional"</span>
+      <span class="kw">IF</span> atingimento_meta < <span class="num">80</span>  <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Meta em risco"</span>
+      <span class="kw">IF</span> taxa_conversao  < <span class="num">20</span>   <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Funil ineficiente"</span>
+    }
+
+    <span class="kw">RETURN</span> <span class="fn">ComReport</span> { ticket_medio, taxa_conversao, churn_rate,
+                        ltv, cac, ltv_cac_ratio, atingimento_meta }
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Área: Operacional</div>
+<pre>
+<span class="kw">PROCESS</span> <span class="area">OPERACIONAL</span> {
+
+  <span class="kw">MACRO_PROCESSES</span> = [
+    <span class="str">"Planejamento e Controle da Produção (PCP)"</span>,
+    <span class="str">"Gestão da Qualidade"</span>,
+    <span class="str">"Manutenção de Equipamentos"</span>,
+    <span class="str">"Gestão de Capacidade"</span>
+  ]
+
+  <span class="kw">FUNCTION</span> <span class="fn">analyze_operations</span>(clean_dataset) {
+    oee               = <span class="fn">CALC</span>( disponibilidade * performance * qualidade )
+    <span class="cmt">// OEE = Overall Equipment Effectiveness</span>
+    disponibilidade   = <span class="fn">CALC</span>( tempo_operando / tempo_planejado )
+    performance       = <span class="fn">CALC</span>( output_real / output_teorico )
+    qualidade         = <span class="fn">CALC</span>( pecas_boas / total_produzido )
+    taxa_retrabalho   = <span class="fn">CALC</span>( qtd_retrabalho / producao_total * <span class="num">100</span> )
+    lead_time_producao= <span class="fn">AVG</span>( data_entrega - data_ordem )
+    custo_unit_prod   = <span class="fn">CALC</span>( custo_total_producao / qtd_produzida )
+    setup_time        = <span class="fn">AVG</span>( tempo_setup_maquina )
+    indice_refugo     = <span class="fn">CALC</span>( pecas_refugo / total_produzido * <span class="num">100</span> )
+    mtbf              = <span class="fn">CALC</span>( tempo_entre_falhas )  <span class="cmt">// Mean Time Between Failures</span>
+    mttr              = <span class="fn">CALC</span>( tempo_reparo )        <span class="cmt">// Mean Time To Repair</span>
+
+    <span class="kw">ALERTS</span> = {
+      <span class="kw">IF</span> oee            < <span class="num">0.65</span> <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"OEE abaixo da classe mundial"</span>
+      <span class="kw">IF</span> taxa_retrabalho > <span class="num">2.0</span>  <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Qualidade comprometida"</span>
+      <span class="kw">IF</span> indice_refugo   > <span class="num">1.0</span>  <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Refugo elevado"</span>
+    }
+
+    <span class="kw">RETURN</span> <span class="fn">OpsReport</span> { oee, disponibilidade, performance, qualidade,
+                        taxa_retrabalho, lead_time_producao,
+                        custo_unit_prod, mtbf, mttr }
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Área: Logístico</div>
+<pre>
+<span class="kw">PROCESS</span> <span class="area">LOGISTICO</span> {
+
+  <span class="kw">MACRO_PROCESSES</span> = [
+    <span class="str">"Gestão de Estoque e WMS"</span>,
+    <span class="str">"Gestão de Transporte e Frota"</span>,
+    <span class="str">"Recebimento e Armazenagem"</span>,
+    <span class="str">"Distribuição e Last Mile"</span>,
+    <span class="str">"Gestão de Fornecedores"</span>
+  ]
+
+  <span class="kw">FUNCTION</span> <span class="fn">analyze_logistics</span>(clean_dataset) {
+    giro_estoque      = <span class="fn">CALC</span>( custo_venda / estoque_medio )
+    cobertura_estoque = <span class="fn">CALC</span>( estoque_atual / consumo_medio_diario )
+    ruptura_estoque   = <span class="fn">COUNT</span>( skus_zerados ) / total_skus * <span class="num">100</span>
+    acuracidade_inv   = <span class="fn">CALC</span>( qtd_fisico_ok / total_contado * <span class="num">100</span> )
+    otif              = <span class="fn">CALC</span>( entregas_no_prazo / total_entregas * <span class="num">100</span> )
+    <span class="cmt">// OTIF = On Time In Full</span>
+    custo_frete_rec   = <span class="fn">CALC</span>( custo_frete / receita_liquida * <span class="num">100</span> )
+    lead_time_entrega = <span class="fn">AVG</span>( data_entrega - data_emissao )
+    nivel_servico     = <span class="fn">CALC</span>( pedidos_perfeitos / total_pedidos * <span class="num">100</span> )
+    custo_armazenagem = <span class="fn">CALC</span>( custo_wms / volume_armazenado )
+    fill_rate         = <span class="fn">CALC</span>( itens_atendidos / itens_solicitados * <span class="num">100</span> )
+
+    <span class="kw">ALERTS</span> = {
+      <span class="kw">IF</span> otif           < <span class="num">95</span>   <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"OTIF abaixo do SLA"</span>
+      <span class="kw">IF</span> ruptura_estoque > <span class="num">3</span>    <span class="arrow">→</span> <span class="err">ALERT_HIGH</span>  <span class="str">"Ruptura crítica no estoque"</span>
+      <span class="kw">IF</span> acuracidade_inv < <span class="num">97</span>   <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Inventário impreciso"</span>
+      <span class="kw">IF</span> fill_rate       < <span class="num">95</span>   <span class="arrow">→</span> <span class="err">ALERT_MED</span>   <span class="str">"Fill rate comprometido"</span>
+    }
+
+    <span class="kw">RETURN</span> <span class="fn">LogReport</span> { giro_estoque, cobertura_estoque, ruptura_estoque,
+                        acuracidade_inv, otif, custo_frete_rec,
+                        lead_time_entrega, nivel_servico, fill_rate }
+  }
+}
+</pre>
+</div>
+</div>
+
+<!-- ══════════ KPIs ══════════ -->
+<div class="content" id="tab-kpis">
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="area-tag" style="color:#3C3489">⬛ Administrativo</div>
+    <ul>
+      <li>Headcount total</li>
+      <li>Turnover Rate (%)</li>
+      <li>Absenteísmo (%)</li>
+      <li>Compliance Index</li>
+      <li>Custo por Colaborador</li>
+      <li>H/H Treinamento</li>
+      <li>Tempo médio contratação</li>
+    </ul>
+  </div>
+  <div class="kpi-card">
+    <div class="area-tag" style="color:#085041">⬛ Financeiro</div>
+    <ul>
+      <li>Receita Líquida</li>
+      <li>Margem Bruta (%)</li>
+      <li>EBITDA / Margem EBITDA</li>
+      <li>Liquidez Corrente</li>
+      <li>Inadimplência (%)</li>
+      <li>Dias a Receber (DSO)</li>
+      <li>Budget Variance (%)</li>
+      <li>Burn Rate</li>
+    </ul>
+  </div>
+  <div class="kpi-card">
+    <div class="area-tag" style="color:#712B13">⬛ Comercial</div>
+    <ul>
+      <li>Ticket Médio</li>
+      <li>Taxa de Conversão (%)</li>
+      <li>Churn Rate (%)</li>
+      <li>LTV / CAC / Ratio</li>
+      <li>Atingimento de Meta (%)</li>
+      <li>Receita Recorrente</li>
+      <li>Ciclo de Venda (dias)</li>
+      <li>NPS / CSAT</li>
+    </ul>
+  </div>
+  <div class="kpi-card">
+    <div class="area-tag" style="color:#3B6D11">⬛ Operacional</div>
+    <ul>
+      <li>OEE (%)</li>
+      <li>Disponibilidade (%)</li>
+      <li>Taxa de Retrabalho (%)</li>
+      <li>Índice de Refugo (%)</li>
+      <li>Lead Time Produção</li>
+      <li>Custo Unit. Produção</li>
+      <li>MTBF / MTTR</li>
+      <li>Capacidade Utilizada (%)</li>
+    </ul>
+  </div>
+  <div class="kpi-card">
+    <div class="area-tag" style="color:#633806">⬛ Logístico</div>
+    <ul>
+      <li>OTIF (%)</li>
+      <li>Giro de Estoque</li>
+      <li>Ruptura de Estoque (%)</li>
+      <li>Acuracidade Inventário (%)</li>
+      <li>Fill Rate (%)</li>
+      <li>Lead Time Entrega (dias)</li>
+      <li>Custo Frete / Receita (%)</li>
+      <li>Nível de Serviço (%)</li>
+    </ul>
+  </div>
+</div>
+<div class="code-block">
+<div class="label">KPI Engine — Cálculo e Classificação</div>
+<pre>
+<span class="kw">MODULE</span> <span class="fn">KPI_ENGINE</span> {
+
+  <span class="kw">FUNCTION</span> <span class="fn">score_kpi</span>(kpi_name, value, benchmarks) {
+    target   = benchmarks[kpi_name].target
+    min_ok   = benchmarks[kpi_name].min_acceptable
+    critical = benchmarks[kpi_name].critical_threshold
+
+    <span class="kw">IF</span> value >= target               <span class="arrow">→</span> <span class="fn">STATUS</span>(<span class="str">"GREEN"</span>,  value, <span class="num">+1</span>)
+    <span class="kw">IF</span> value >= min_ok               <span class="arrow">→</span> <span class="fn">STATUS</span>(<span class="str">"YELLOW"</span>, value,  <span class="num">0</span>)
+    <span class="kw">IF</span> value <  min_ok               <span class="arrow">→</span> <span class="fn">STATUS</span>(<span class="str">"RED"</span>,    value, <span class="num">-1</span>)
+    <span class="kw">IF</span> value <  critical             <span class="arrow">→</span> <span class="fn">STATUS</span>(<span class="str">"CRITICAL"</span>,value,<span class="num">-2</span>)
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">trend_analysis</span>(kpi_name, history[]) {
+    slope = <span class="fn">LINEAR_REGRESSION</span>(history)
+    <span class="kw">RETURN</span> {
+      trend     : <span class="kw">IF</span> slope > <span class="num">0</span> <span class="arrow">→</span> <span class="str">"IMPROVING"</span> <span class="kw">ELSE</span> <span class="str">"DECLINING"</span>,
+      velocity  : slope,
+      forecast  : <span class="fn">PROJECT</span>(history, days=<span class="num">30</span>)
+    }
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">cross_area_correlation</span>(reports[]) {
+    <span class="cmt">// Detecta impactos cruzados entre áreas</span>
+    <span class="kw">IF</span> <span class="area">LOGISTICO</span>.otif < <span class="num">90</span> <span class="kw">AND</span> <span class="area">COMERCIAL</span>.churn > <span class="num">5</span>
+      <span class="arrow">→</span> <span class="err">INSIGHT</span> <span class="str">"Falha logística impactando retenção de clientes"</span>
+
+    <span class="kw">IF</span> <span class="area">FINANCEIRO</span>.margem < <span class="num">20</span> <span class="kw">AND</span> <span class="area">OPERACIONAL</span>.custo_unit > benchmark
+      <span class="arrow">→</span> <span class="err">INSIGHT</span> <span class="str">"Custo de produção erodindo margem financeira"</span>
+
+    <span class="kw">IF</span> <span class="area">ADMIN</span>.turnover > <span class="num">5</span> <span class="kw">AND</span> <span class="area">OPERACIONAL</span>.oee < <span class="num">65</span>
+      <span class="arrow">→</span> <span class="err">INSIGHT</span> <span class="str">"Alta rotatividade afetando eficiência operacional"</span>
+  }
+}
+</pre>
+</div>
+</div>
+
+<!-- ══════════ DECISION ENGINE ══════════ -->
+<div class="content" id="tab-decision">
+<div class="code-block">
+<div class="label">Decision Engine — Recomendação e Output</div>
+<pre>
+<span class="kw">MODULE</span> <span class="fn">DECISION_ENGINE</span> {
+
+  <span class="kw">FUNCTION</span> <span class="fn">generate_insights</span>(all_reports, correlations) {
+
+    insights = []
+
+    <span class="kw">FOR EACH</span> correlation <span class="kw">IN</span> correlations {
+      insight = <span class="fn">Insight</span> {
+        severity    : correlation.severity,
+        areas       : correlation.areas_involved,
+        description : correlation.description,
+        root_cause  : <span class="fn">IDENTIFY_ROOT_CAUSE</span>(correlation),
+        impact      : <span class="fn">ESTIMATE_IMPACT_BRL</span>(correlation)
+      }
+      insights.<span class="fn">append</span>(insight)
+    }
+
+    <span class="kw">RETURN</span> insights.<span class="fn">sort_by</span>(impact, <span class="str">"DESC"</span>)
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">recommend</span>(insight) {
+    <span class="kw">RETURN</span> <span class="fn">Recommendation</span> {
+      action      : <span class="fn">ACTION_LIBRARY</span>[insight.type],
+      owner       : <span class="fn">ASSIGN_OWNER</span>(insight.area),
+      priority    : <span class="fn">CALC_PRIORITY</span>(insight.severity, insight.impact),
+      deadline    : <span class="fn">SUGGEST_DEADLINE</span>(insight.priority),
+      expected_roi: <span class="fn">ESTIMATE_ROI</span>(insight.impact)
+    }
+  }
+
+  <span class="kw">FUNCTION</span> <span class="fn">build_dashboard_payload</span>(reports[], insights[]) {
+    <span class="kw">RETURN</span> {
+      executive_summary : <span class="fn">GENERATE_EXECUTIVE_SUMMARY</span>(reports),
+      health_score      : <span class="fn">CALC_HEALTH_SCORE</span>(reports),
+      <span class="cmt">// 0–100 por área e consolidado</span>
+      critical_alerts   : <span class="fn">FILTER</span>(insights, severity == <span class="str">"CRITICAL"</span>),
+      kpi_grid          : <span class="fn">FLATTEN</span>(reports.all_kpis),
+      trend_charts      : <span class="fn">BUILD_TRENDS</span>(kpi_history, days=<span class="num">90</span>),
+      recommendations   : <span class="fn">FILTER</span>(insights, top=<span class="num">5</span>)
+    }
+  }
+
+  <span class="cmt">// Canais de entrega do output</span>
+  <span class="kw">OUTPUT_CHANNELS</span> = {
+    <span class="fn">REST_API</span>    : <span class="str">"/api/v1/3dm/report"</span>           <span class="arrow">→</span> JSON,
+    <span class="fn">DASHBOARD</span>   : <span class="str">"bi.empresa.com/3dm"</span>           <span class="arrow">→</span> realtime,
+    <span class="fn">EMAIL</span>       : <span class="str">"cron(0 7 * * 1)"</span>              <span class="arrow">→</span> resumo semanal,
+    <span class="fn">WEBHOOK</span>     : <span class="str">"empresa.slack.com/3dm-alerts"</span> <span class="arrow">→</span> alertas críticos,
+    <span class="fn">PDF_EXPORT</span>  : <span class="str">"/api/v1/3dm/report/pdf"</span>       <span class="arrow">→</span> PDF executivo
+  }
+}
+</pre>
+</div>
+<div class="code-block">
+<div class="label">Orquestrador Principal — 3DM.run()</div>
+<pre>
+<span class="kw">FUNCTION</span> <span class="fn">3DM.run</span>(config) {
+
+  <span class="cmt">// ─── 1. Conectar ao ERP ──────────────────────</span>
+  handle = <span class="fn">ERP_CONNECTOR</span>.<span class="fn">connect</span>(config.erp)
+  <span class="kw">ON ERROR</span> <span class="arrow">→</span> <span class="err">ALERT_CRITICAL</span>(<span class="str">"ERP unreachable"</span>); <span class="ret">RETURN</span>
+
+  <span class="cmt">// ─── 2. Extrair dados por área ───────────────</span>
+  raw_data = {}
+  <span class="kw">FOR EACH</span> area <span class="kw">IN</span> [<span class="area">ADMIN</span>, <span class="area">FIN</span>, <span class="area">COM</span>, <span class="area">OPS</span>, <span class="area">LOG</span>] {
+    raw_data[area] = <span class="fn">ERP_CONNECTOR</span>.<span class="fn">extract</span>(handle, area, config.date_range)
+  }
+
+  <span class="cmt">// ─── 3. Transformar e limpar ─────────────────</span>
+  clean = <span class="fn">ETL_PIPELINE</span>.<span class="fn">transform</span>(raw_data)
+
+  <span class="cmt">// ─── 4. Calcular KPIs por área ───────────────</span>
+  reports = {
+    admin : <span class="fn">ADMINISTRATIVO</span>.<span class="fn">analyze_admin</span>(clean.ADMIN),
+    fin   : <span class="fn">FINANCEIRO</span>.<span class="fn">analyze_finance</span>(clean.FIN),
+    com   : <span class="fn">COMERCIAL</span>.<span class="fn">analyze_commercial</span>(clean.COM),
+    ops   : <span class="fn">OPERACIONAL</span>.<span class="fn">analyze_operations</span>(clean.OPS),
+    log   : <span class="fn">LOGISTICO</span>.<span class="fn">analyze_logistics</span>(clean.LOG)
+  }
+
+  <span class="cmt">// ─── 5. Score e correlações entre áreas ──────</span>
+  kpi_engine = <span class="fn">KPI_ENGINE</span>.<span class="fn">score_all</span>(reports, config.benchmarks)
+  trends     = <span class="fn">KPI_ENGINE</span>.<span class="fn">trend_analysis</span>(kpi_engine, kpi_history)
+  correlations = <span class="fn">KPI_ENGINE</span>.<span class="fn">cross_area_correlation</span>(reports)
+
+  <span class="cmt">// ─── 6. Gerar insights e recomendações ───────</span>
+  insights = <span class="fn">DECISION_ENGINE</span>.<span class="fn">generate_insights</span>(reports, correlations)
+  recommendations = <span class="fn">DECISION_ENGINE</span>.<span class="fn">recommend</span>(insights)
+
+  <span class="cmt">// ─── 7. Construir e distribuir output ────────</span>
+  payload = <span class="fn">DECISION_ENGINE</span>.<span class="fn">build_dashboard_payload</span>(reports, insights)
+  <span class="fn">DISTRIBUTE</span>(payload, config.output_channels)
+
+  <span class="cmt">// ─── 8. Persistir histórico ──────────────────</span>
+  <span class="fn">STORE</span>(payload, db=<span class="str">"3dm_history"</span>, ttl=<span class="str">"2y"</span>)
+
+  <span class="kw">RETURN</span> <span class="fn">ExecutionResult</span> {
+    status    : <span class="str">"SUCCESS"</span>,
+    areas     : <span class="num">5</span>,
+    kpis_calc : <span class="fn">COUNT</span>(payload.kpi_grid),
+    alerts    : <span class="fn">COUNT</span>(payload.critical_alerts),
+    timestamp : <span class="fn">NOW</span>()
+  }
+}
+</pre>
+</div>
+</div>
+
+<!-- ══════════ ARQUITETURA ══════════ -->
+<div class="content" id="tab-arch">
+<div style="margin-bottom: 1rem;">
+<div class="arch">
+  <div class="arch-layer l1">
+    <div class="arch-layer-title">⬛ Camada 0 — Fonte de Dados</div>
+    <div class="arch-layer-desc">ERP Existente (SAP / TOTVS / Oracle / Senior / Custom SQL) via Adapter Pattern</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer l2">
+    <div class="arch-layer-title">⬛ Camada 1 — ERP Connector</div>
+    <div class="arch-layer-desc">Autenticação segura · Extração por domínio · Versionamento de schema · Retry & fallback</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer l3">
+    <div class="arch-layer-title">⬛ Camada 2 — ETL Pipeline</div>
+    <div class="arch-layer-desc">Validação · Limpeza · Enriquecimento · Normalização de moeda e datas · Quarentena</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer l4">
+    <div class="arch-layer-title">⬛ Camada 3 — KPI Engine</div>
+    <div class="arch-layer-desc">Cálculo por área · Scoring RAG · Análise de tendência · Correlações cross-área · Benchmarks</div>
+  </div>
+  <div class="arch-arrow">↓</div>
+  <div class="arch-layer l5">
+    <div class="arch-layer-title">⬛ Camada 4 — Decision & Output</div>
+    <div class="arch-layer-desc">Insights priorizados · Recomendações · Dashboard · API · Alertas · PDF Executivo</div>
+  </div>
+</div>
+</div>
+<div class="code-block">
+<div class="label">Princípios de Design do 3DM</div>
+<pre>
+<span class="kw">DESIGN_PRINCIPLES</span> = {
+
+  <span class="str">"Adaptabilidade"</span>     : <span class="cmt">// Adapter pattern → qualquer ERP, sem reescrever core</span>
+  <span class="str">"Auditabilidade"</span>     : <span class="cmt">// Todo dado tem origem, timestamp e versão do ERP</span>
+  <span class="str">"Modularidade"</span>       : <span class="cmt">// Cada área é um módulo independente plugável</span>
+  <span class="str">"Observabilidade"</span>    : <span class="cmt">// Logs estruturados em cada step do pipeline</span>
+  <span class="str">"Idempotência"</span>       : <span class="cmt">// Re-execução não duplica dados históricos</span>
+  <span class="str">"Threshold Dinâmico"</span> : <span class="cmt">// Benchmarks ajustáveis por setor/empresa/período</span>
+  <span class="str">"Cross-area Insights"</span>: <span class="cmt">// Correlações entre áreas são first-class citizens</span>
+
+}
+
+<span class="kw">NON_FUNCTIONAL</span> = {
+  <span class="fn">SECURITY</span>    : <span class="str">"credentials no ERP nunca trafegam no payload"</span>,
+  <span class="fn">LATENCY</span>     : <span class="str">"SLA < 30s para extração full em datasets < 500k rows"</span>,
+  <span class="fn">AVAILABILITY</span>: <span class="str">"99.5% uptime; degradação graciosa por área"</span>,
+  <span class="fn">STORAGE</span>     : <span class="str">"histórico comprimido em cold storage após 90 dias"</span>
+}
+</pre>
+</div>
+</div>
+
+<script>
+function show(tabId) {
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
